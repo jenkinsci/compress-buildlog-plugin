@@ -1,20 +1,31 @@
 package org.jenkinsci.plugins.compressbuildlog;
 
 import hudson.Extension;
-import hudson.model.*;
+import hudson.maven.MavenBuild;
+import hudson.maven.MavenModule;
+import hudson.maven.MavenModuleSetBuild;
+import hudson.model.JobProperty;
+import hudson.model.JobPropertyDescriptor;
+import hudson.model.AbstractProject;
+import hudson.model.Job;
+import hudson.model.Run;
 import hudson.model.listeners.RunListener;
-import net.sf.json.JSONObject;
-import org.apache.commons.io.IOUtils;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.StaplerRequest;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.GZIPOutputStream;
+
+import net.sf.json.JSONObject;
+
+import org.apache.commons.io.IOUtils;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.StaplerRequest;
 
 public class BuildLogCompressor extends JobProperty<AbstractProject<?, ?>> {
 
@@ -55,18 +66,40 @@ public class BuildLogCompressor extends JobProperty<AbstractProject<?, ?>> {
 
         @Override
         public void onFinalized(Run run) {
-            File log = run.getLogFile();
-            if (log.getName().endsWith(".gz")) {
-                // ignore already compressed log
-                LOGGER.log(Level.FINER, String.format("Skipping %s because the log is already compressed", run));
-                return;
-            }
 
             if (run.getParent().getProperty(BuildLogCompressor.class) == null) {
                 LOGGER.log(Level.FINER, String.format("Skipping %s because the project is not configured to have compressed logs", run));
                 return;
             }
 
+            compressLogFile(run);
+
+            // compress module logs, if this is a maven reactor build
+            if (run instanceof MavenModuleSetBuild) {
+                LOGGER.log(Level.INFO, "Detected MavenModuleSetBuild");
+                MavenModuleSetBuild ms = (MavenModuleSetBuild) run;
+
+                Map<MavenModule, MavenBuild> moduleBuilds = ms
+                        .getModuleLastBuilds();
+                for (Entry<MavenModule, MavenBuild> d : moduleBuilds.entrySet()) {
+                    if (d != null) {
+                        MavenBuild moduleRun = d.getValue();
+                        compressLogFile(moduleRun);
+                    }
+                }
+            }
+        }
+
+        private void compressLogFile(Run run) {
+            File log = run.getLogFile();
+
+            if (log.getName().endsWith(".gz")) {
+                // ignore already compressed log
+                LOGGER.log(Level.FINER, String.format(
+                        "Skipping %s because the log is already compressed",
+                        run));
+                return;
+            }
             String gzippedLogName = log.getName() + ".gz";
 
             if (log.getName().equals("log")) {
