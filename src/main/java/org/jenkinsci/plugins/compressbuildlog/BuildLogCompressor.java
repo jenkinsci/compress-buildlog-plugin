@@ -1,9 +1,7 @@
 package org.jenkinsci.plugins.compressbuildlog;
 
 import hudson.Extension;
-import hudson.maven.MavenBuild;
-import hudson.maven.MavenModule;
-import hudson.maven.MavenModuleSetBuild;
+import hudson.Plugin;
 import hudson.model.JobProperty;
 import hudson.model.JobPropertyDescriptor;
 import hudson.model.AbstractProject;
@@ -11,19 +9,13 @@ import hudson.model.Job;
 import hudson.model.Run;
 import hudson.model.listeners.RunListener;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.lang.reflect.Constructor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.zip.GZIPOutputStream;
 
+import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 
-import org.apache.commons.io.IOUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 
@@ -72,73 +64,24 @@ public class BuildLogCompressor extends JobProperty<AbstractProject<?, ?>> {
                 return;
             }
 
-            compressLogFile(run);
+            Util.compressLogFile(run);
 
-            // compress module logs, if this is a maven reactor build
-            if (run instanceof MavenModuleSetBuild) {
-                LOGGER.log(Level.INFO, "Detected MavenModuleSetBuild");
-                MavenModuleSetBuild ms = (MavenModuleSetBuild) run;
-
-                Map<MavenModule, MavenBuild> moduleBuilds = ms
-                        .getModuleLastBuilds();
-                for (Entry<MavenModule, MavenBuild> d : moduleBuilds.entrySet()) {
-                    if (d != null) {
-                        MavenBuild moduleRun = d.getValue();
-                        compressLogFile(moduleRun);
-                    }
-                }
+            Plugin mvn = Jenkins.getInstance().getPlugin("maven-plugin");
+            if (mvn!= null) {
+                // compress module logs, if this is a maven reactor build
+                Class<?> c;
+				try {
+					c = Class.forName("org.jenkinsci.plugins.compressbuildlog.MavenModuleLogCompressor");
+					Constructor<?> con = c.getConstructor(Run.class);
+					((Runnable)con.newInstance(run)).run();
+				} catch (Throwable e) {
+					LOGGER.warning("While creating instance of MavenModuleLogCompressor: "+e);
+					e.printStackTrace();
+				}
             }
         }
 
-        private void compressLogFile(Run run) {
-            File log = run.getLogFile();
-
-            if (log.getName().endsWith(".gz")) {
-                // ignore already compressed log
-                LOGGER.log(Level.FINER, String.format(
-                        "Skipping %s because the log is already compressed",
-                        run));
-                return;
-            }
-            String gzippedLogName = log.getName() + ".gz";
-
-            if (log.getName().equals("log")) {
-                LOGGER.log(Level.FINE, String.format("Compressing build log of %s", run));
-
-                // regular, expected log file
-                FileInputStream fis = null;
-                FileOutputStream fos = null;
-                GZIPOutputStream gzos = null;
-
-                try {
-                    fis = new FileInputStream(log);
-                    fos = new FileOutputStream(new File(log.getParentFile(), gzippedLogName));
-                    gzos = new GZIPOutputStream(fos);
-                    int copiedBytes = IOUtils.copy(fis, gzos);
-
-                    if (copiedBytes != log.length()) {
-                        LOGGER.log(Level.WARNING, String.format("Expected to copy %d bytes but copied %d from %s", copiedBytes, log.length(), log.getAbsolutePath()));
-                    }
-
-                    gzos.finish();
-                    LOGGER.log(Level.FINE, String.format("Finished compressing build log of %s", run));
-                } catch (IOException e) {
-                    LOGGER.log(Level.WARNING, String.format("Failed to compress build log of %s to %s", run, gzippedLogName));
-                    return;
-                } finally {
-                    IOUtils.closeQuietly(fis);
-                    IOUtils.closeQuietly(fos);
-                    IOUtils.closeQuietly(gzos);
-                }
-
-                // XXX try multiple times because Windows?
-                if (!log.delete()) {
-                    LOGGER.log(Level.WARNING, String.format("Failed to delete build log of %s after compression", run));
-                }
-            }
-        }
-
-        private static final Logger LOGGER = Logger.getLogger(CompressBuildlogRunListener.class.getName());
+		static final Logger LOGGER = Logger.getLogger(CompressBuildlogRunListener.class.getName());
     }
 
 

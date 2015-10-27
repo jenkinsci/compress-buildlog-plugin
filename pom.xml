@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>1.532.3</version><!-- which version of Jenkins is this plugin built against? Users must have at least this Jenkins version to use this plugin. -->
+    <version>1.580</version><!-- which version of Jenkins is this plugin built against? Users must have at least this Jenkins version to use this plugin. -->
   </parent>
 
   <groupId>org.jenkins-ci.plugins</groupId>
@@ -51,12 +51,12 @@
   </pluginRepositories>
 
   <dependencies>
-        <dependency>
-                <groupId>org.jenkins-ci.main</groupId>
-                <artifactId>maven-plugin</artifactId>
-                <version>[2.0,)</version>
-        </dependency>
-  </dependencies>
+    <dependency>
+      <groupId>org.jenkins-ci.main</groupId>
+      <artifactId>maven-plugin</artifactId>
+      <version>[2.0,)</version>
+    </dependency>
+ </dependencies>
 
 
 </project>
