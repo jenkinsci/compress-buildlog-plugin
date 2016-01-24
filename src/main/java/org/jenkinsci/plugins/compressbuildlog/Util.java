@@ -2,10 +2,15 @@ package org.jenkinsci.plugins.compressbuildlog;
 
 import hudson.model.Run;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.logging.Level;
 import java.util.zip.GZIPOutputStream;
 
@@ -28,16 +33,13 @@ public class Util {
 	
 	    if (log.getName().equals("log")) {
 	        CompressBuildlogRunListener.LOGGER.log(Level.FINE, String.format("Compressing build log of %s", run));
-	
-	        // regular, expected log file
-	        FileInputStream fis = null;
-	        FileOutputStream fos = null;
-	        GZIPOutputStream gzos = null;
+
 	
 	        try {
-	            fis = new FileInputStream(log);
-	            fos = new FileOutputStream(new File(log.getParentFile(), gzippedLogName));
-	            gzos = new GZIPOutputStream(fos);
+	            InputStream fis = new BufferedInputStream(new FileInputStream(log));
+	            OutputStream fos = new BufferedOutputStream(
+	        	    			new FileOutputStream(new File(log.getParentFile(), gzippedLogName)));
+	            GZIPOutputStream gzos = new GZIPOutputStream(fos);
 	            int copiedBytes = IOUtils.copy(fis, gzos);
 	
 	            if (copiedBytes != log.length()) {
@@ -45,14 +47,13 @@ public class Util {
 	            }
 	
 	            gzos.finish();
+	            tryClose(fis);
+	            tryClose(gzos);
+	            
 	            CompressBuildlogRunListener.LOGGER.log(Level.FINE, String.format("Finished compressing build log of %s", run));
 	        } catch (IOException e) {
 	            CompressBuildlogRunListener.LOGGER.log(Level.WARNING, String.format("Failed to compress build log of %s to %s", run, gzippedLogName));
 	            return;
-	        } finally {
-	            IOUtils.closeQuietly(fis);
-	            IOUtils.closeQuietly(fos);
-	            IOUtils.closeQuietly(gzos);
 	        }
 	
 	        // XXX try multiple times because Windows?
@@ -62,4 +63,12 @@ public class Util {
 	    }
 	}
 
+	private static void tryClose(Closeable c) {
+	    try{
+		c.close();
+	    }
+	    catch(IOException e){
+		CompressBuildlogRunListener.LOGGER.log(Level.WARNING, String.format("Failed to close "+c, e));
+	    }
+	}
 }
