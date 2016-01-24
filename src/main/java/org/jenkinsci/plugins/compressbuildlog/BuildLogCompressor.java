@@ -69,19 +69,18 @@ public class BuildLogCompressor extends JobProperty<AbstractProject<?, ?>> {
             Plugin mvn = Jenkins.getInstance().getPlugin("maven-plugin");
             if (mvn!= null) {
                 // compress module logs, if this is a maven reactor build
-                Class<?> c;
-				try {
-					c = Class.forName("org.jenkinsci.plugins.compressbuildlog.MavenModuleLogCompressor");
-					Constructor<?> con = c.getConstructor(Run.class);
-					((Runnable)con.newInstance(run)).run();
-				} catch (Throwable e) {
-					LOGGER.warning("While creating instance of MavenModuleLogCompressor: "+e);
-					e.printStackTrace();
-				}
+                try {
+                    Class<?> c = Class.forName("org.jenkinsci.plugins.compressbuildlog.MavenModuleLogCompressor");
+		    Constructor<?> con = c.getConstructor(Run.class);
+		    ((Runnable)con.newInstance(run)).run();
+		} catch (Throwable e) {
+		    LOGGER.warning("While creating instance of MavenModuleLogCompressor: "+e);
+		    e.printStackTrace();
+		}
             }
         }
 
-		static final Logger LOGGER = Logger.getLogger(CompressBuildlogRunListener.class.getName());
+        static final Logger LOGGER = Logger.getLogger(CompressBuildlogRunListener.class.getName());
     }
 
 
