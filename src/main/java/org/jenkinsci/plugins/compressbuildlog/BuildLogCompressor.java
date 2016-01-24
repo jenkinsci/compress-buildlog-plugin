@@ -1,20 +1,23 @@
 package org.jenkinsci.plugins.compressbuildlog;
 
 import hudson.Extension;
-import hudson.model.*;
+import hudson.Plugin;
+import hudson.model.JobProperty;
+import hudson.model.JobPropertyDescriptor;
+import hudson.model.AbstractProject;
+import hudson.model.Job;
+import hudson.model.Run;
 import hudson.model.listeners.RunListener;
-import net.sf.json.JSONObject;
-import org.apache.commons.io.IOUtils;
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.StaplerRequest;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.zip.GZIPOutputStream;
+
+import jenkins.model.Jenkins;
+import net.sf.json.JSONObject;
+
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.StaplerRequest;
 
 public class BuildLogCompressor extends JobProperty<AbstractProject<?, ?>> {
 
@@ -55,57 +58,29 @@ public class BuildLogCompressor extends JobProperty<AbstractProject<?, ?>> {
 
         @Override
         public void onFinalized(Run run) {
-            File log = run.getLogFile();
-            if (log.getName().endsWith(".gz")) {
-                // ignore already compressed log
-                LOGGER.log(Level.FINER, String.format("Skipping %s because the log is already compressed", run));
-                return;
-            }
 
             if (run.getParent().getProperty(BuildLogCompressor.class) == null) {
                 LOGGER.log(Level.FINER, String.format("Skipping %s because the project is not configured to have compressed logs", run));
                 return;
             }
 
-            String gzippedLogName = log.getName() + ".gz";
+            Util.compressLogFile(run);
 
-            if (log.getName().equals("log")) {
-                LOGGER.log(Level.FINE, String.format("Compressing build log of %s", run));
-
-                // regular, expected log file
-                FileInputStream fis = null;
-                FileOutputStream fos = null;
-                GZIPOutputStream gzos = null;
-
+            Plugin mvn = Jenkins.getInstance().getPlugin("maven-plugin");
+            if (mvn!= null) {
+                // compress module logs, if this is a maven reactor build
                 try {
-                    fis = new FileInputStream(log);
-                    fos = new FileOutputStream(new File(log.getParentFile(), gzippedLogName));
-                    gzos = new GZIPOutputStream(fos);
-                    int copiedBytes = IOUtils.copy(fis, gzos);
-
-                    if (copiedBytes != log.length()) {
-                        LOGGER.log(Level.WARNING, String.format("Expected to copy %d bytes but copied %d from %s", copiedBytes, log.length(), log.getAbsolutePath()));
-                    }
-
-                    gzos.finish();
-                    LOGGER.log(Level.FINE, String.format("Finished compressing build log of %s", run));
-                } catch (IOException e) {
-                    LOGGER.log(Level.WARNING, String.format("Failed to compress build log of %s to %s", run, gzippedLogName));
-                    return;
-                } finally {
-                    IOUtils.closeQuietly(fis);
-                    IOUtils.closeQuietly(fos);
-                    IOUtils.closeQuietly(gzos);
-                }
-
-                // XXX try multiple times because Windows?
-                if (!log.delete()) {
-                    LOGGER.log(Level.WARNING, String.format("Failed to delete build log of %s after compression", run));
-                }
+                    Class<?> c = Class.forName("org.jenkinsci.plugins.compressbuildlog.MavenModuleLogCompressor");
+                    Constructor<?> con = c.getConstructor(Run.class);
+                    ((Runnable)con.newInstance(run)).run();
+		} catch (Throwable e) {
+		    LOGGER.warning("While creating instance of MavenModuleLogCompressor: "+e);
+		    e.printStackTrace();
+		}
             }
         }
 
-        private static final Logger LOGGER = Logger.getLogger(CompressBuildlogRunListener.class.getName());
+        static final Logger LOGGER = Logger.getLogger(CompressBuildlogRunListener.class.getName());
     }
 
 
