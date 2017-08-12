@@ -1,7 +1,11 @@
 package org.jenkinsci.plugins.compressbuildlog;
 
 import hudson.Extension;
-import hudson.model.*;
+import hudson.model.JobProperty;
+import hudson.model.JobPropertyDescriptor;
+import hudson.model.AbstractProject;
+import hudson.model.Job;
+import hudson.model.Run;
 import hudson.model.listeners.RunListener;
 import net.sf.json.JSONObject;
 import org.apache.commons.io.IOUtils;
@@ -30,7 +34,7 @@ public class BuildLogCompressor extends JobProperty<AbstractProject<?, ?>> {
 
         @Override
         public String getDisplayName() {
-            return "Compress Build Log";
+            return "Compress Build Logs";
         }
 
         @Override
@@ -55,6 +59,27 @@ public class BuildLogCompressor extends JobProperty<AbstractProject<?, ?>> {
     @Extension
     public final static class CompressBuildlogRunListener extends RunListener<Run> {
 
+        private static boolean hasBuildCompressorConfigured(Run<?, ?> run) {
+            Job<?, ?> parent = run.getParent();
+            
+            // Check project for BuildCompressor configuration
+            if (parent.getProperty(BuildLogCompressor.class) != null) {
+                return true;
+            }
+            
+            // Multi-configuration runs have an extra parent to get to the project. Check that too.
+            if (parent.getParent() instanceof Job) {
+                Job<?, ?> grandParent = (Job<?, ?>)parent.getParent();
+                BuildLogCompressor compressor = grandParent.getProperty(BuildLogCompressor.class);
+                if (null != compressor) {
+                    return true;
+                }
+            }
+
+            // No configuration to be found!
+            return false;
+        }
+        
         @Override
         public void onFinalized(Run run) {
             File log = run.getLogFile();
@@ -64,7 +89,7 @@ public class BuildLogCompressor extends JobProperty<AbstractProject<?, ?>> {
                 return;
             }
 
-            if (run.getParent().getProperty(BuildLogCompressor.class) == null) {
+            if (!hasBuildCompressorConfigured(run)) {
                 LOGGER.log(Level.FINER, String.format("Skipping %s because the project is not configured to have compressed logs", run));
                 return;
             }
