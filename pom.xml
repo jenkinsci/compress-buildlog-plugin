@@ -13,6 +13,10 @@
   <packaging>hpi</packaging>
   <url>https://wiki.jenkins-ci.org/display/JENKINS/Compress+Build+Log+Plugin</url>
 
+  <properties>
+    <jenkins.version>2.7.4</jenkins.version>
+  </properties>
+
   <licenses>
     <license>
       <name>MIT License</name>
