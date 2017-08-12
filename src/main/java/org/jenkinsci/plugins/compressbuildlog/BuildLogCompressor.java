@@ -33,7 +33,7 @@ public class BuildLogCompressor extends JobProperty<AbstractProject<?, ?>> {
 
         @Override
         public boolean isApplicable(Class<? extends Job> jobType) {
-            return AbstractProject.class.isAssignableFrom(jobType);
+            return AbstractProject.class.isAssignableFrom(jobType) || jobType.getName().equals("org.jenkinsci.plugins.workflow.job.WorkflowJob");
         }
 
         @Override
