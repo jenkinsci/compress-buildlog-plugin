@@ -13,6 +13,10 @@
   <packaging>hpi</packaging>
   <url>https://wiki.jenkins-ci.org/display/JENKINS/Compress+Build+Log+Plugin</url>
 
+  <properties>
+    <jenkins.version>2.7.4</jenkins.version>
+  </properties>
+
   <licenses>
     <license>
       <name>MIT License</name>
@@ -48,5 +52,19 @@
       <url>http://repo.jenkins-ci.org/public/</url>
     </pluginRepository>
   </pluginRepositories>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins.workflow</groupId>
+      <artifactId>workflow-job</artifactId>
+      <version>2.9</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>structs</artifactId>
+      <version>1.6</version>
+    </dependency>
+  </dependencies>
 
 </project>

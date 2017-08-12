@@ -5,6 +5,7 @@ import hudson.model.*;
 import hudson.model.listeners.RunListener;
 import net.sf.json.JSONObject;
 import org.apache.commons.io.IOUtils;
+import org.jenkinsci.Symbol;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 
@@ -24,6 +25,7 @@ public class BuildLogCompressor extends JobProperty<AbstractProject<?, ?>> {
     }
 
     @Extension
+    @Symbol("compressBuildLog")
     public final static class DescriptorImpl extends JobPropertyDescriptor {
 
         @Override
@@ -33,7 +35,7 @@ public class BuildLogCompressor extends JobProperty<AbstractProject<?, ?>> {
 
         @Override
         public boolean isApplicable(Class<? extends Job> jobType) {
-            return AbstractProject.class.isAssignableFrom(jobType);
+            return AbstractProject.class.isAssignableFrom(jobType) || jobType.getName().equals("org.jenkinsci.plugins.workflow.job.WorkflowJob");
         }
 
         @Override
