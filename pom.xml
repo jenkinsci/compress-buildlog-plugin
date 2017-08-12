@@ -60,6 +60,11 @@
       <version>2.9</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.jenkins-ci.plugins</groupId>
+      <artifactId>structs</artifactId>
+      <version>1.6</version>
+    </dependency>
   </dependencies>
 
 </project>
