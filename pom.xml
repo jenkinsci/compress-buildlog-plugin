@@ -9,7 +9,7 @@
   <groupId>org.jenkins-ci.plugins</groupId>
   <artifactId>compress-buildlog</artifactId>
   <name>Compress Build Log Plugin</name>
-  <version>1.2-SNAPSHOT</version>
+  <version>1.1-SNAPSHOT</version>
   <packaging>hpi</packaging>
   <url>https://wiki.jenkins-ci.org/display/JENKINS/Compress+Build+Log+Plugin</url>
 
