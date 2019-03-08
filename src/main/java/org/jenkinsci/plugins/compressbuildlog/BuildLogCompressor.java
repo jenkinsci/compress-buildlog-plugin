@@ -82,15 +82,15 @@ public class BuildLogCompressor extends JobProperty<AbstractProject<?, ?>> {
         
         @Override
         public void onFinalized(Run run) {
+            if (!hasBuildCompressorConfigured(run)) {
+                LOGGER.log(Level.FINER, String.format("Skipping %s because the project is not configured to have compressed logs", run));
+                return;
+            }
+
             File log = run.getLogFile();
             if (log.getName().endsWith(".gz")) {
                 // ignore already compressed log
                 LOGGER.log(Level.FINER, String.format("Skipping %s because the log is already compressed", run));
-                return;
-            }
-
-            if (!hasBuildCompressorConfigured(run)) {
-                LOGGER.log(Level.FINER, String.format("Skipping %s because the project is not configured to have compressed logs", run));
                 return;
             }
 
