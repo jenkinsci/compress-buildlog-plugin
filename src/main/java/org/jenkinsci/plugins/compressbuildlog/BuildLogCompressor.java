@@ -39,7 +39,7 @@ public class BuildLogCompressor extends JobProperty<AbstractProject<?, ?>> {
 
         @Override
         public boolean isApplicable(Class<? extends Job> jobType) {
-            return AbstractProject.class.isAssignableFrom(jobType) || jobType.getName().equals("org.jenkinsci.plugins.workflow.job.WorkflowJob");
+            return AbstractProject.class.isAssignableFrom(jobType);
         }
 
         @Override
@@ -82,15 +82,21 @@ public class BuildLogCompressor extends JobProperty<AbstractProject<?, ?>> {
         
         @Override
         public void onFinalized(Run run) {
-            File log = run.getLogFile();
-            if (log.getName().endsWith(".gz")) {
-                // ignore already compressed log
-                LOGGER.log(Level.FINER, String.format("Skipping %s because the log is already compressed", run));
+            if (!hasBuildCompressorConfigured(run)) {
+                LOGGER.log(Level.FINER, String.format("Skipping %s because the project is not configured to have compressed logs", run));
                 return;
             }
 
-            if (!hasBuildCompressorConfigured(run)) {
-                LOGGER.log(Level.FINER, String.format("Skipping %s because the project is not configured to have compressed logs", run));
+            File log;
+            try {
+                log = run.getLogFile();
+                if (log.getName().endsWith(".gz")) {
+                    // ignore already compressed log
+                    LOGGER.log(Level.FINER, String.format("Skipping %s because the log is already compressed", run));
+                    return;
+                }
+            } catch (RuntimeException ex) {
+                LOGGER.log(Level.FINER, String.format("Skipping %s because an exception occurred in Run#getLogFile", run), ex);
                 return;
             }
 
@@ -99,15 +105,7 @@ public class BuildLogCompressor extends JobProperty<AbstractProject<?, ?>> {
             if (log.getName().equals("log")) {
                 LOGGER.log(Level.FINE, String.format("Compressing build log of %s", run));
 
-                // regular, expected log file
-                FileInputStream fis = null;
-                FileOutputStream fos = null;
-                GZIPOutputStream gzos = null;
-
-                try {
-                    fis = new FileInputStream(log);
-                    fos = new FileOutputStream(new File(log.getParentFile(), gzippedLogName));
-                    gzos = new GZIPOutputStream(fos);
+                try(FileInputStream fis = new FileInputStream(log); GZIPOutputStream gzos = new GZIPOutputStream(new FileOutputStream(new File(log.getParentFile(), gzippedLogName)))) {
                     int copiedBytes = IOUtils.copy(fis, gzos);
 
                     if (copiedBytes != log.length()) {
@@ -119,10 +117,6 @@ public class BuildLogCompressor extends JobProperty<AbstractProject<?, ?>> {
                 } catch (IOException e) {
                     LOGGER.log(Level.WARNING, String.format("Failed to compress build log of %s to %s", run, gzippedLogName));
                     return;
-                } finally {
-                    IOUtils.closeQuietly(fis);
-                    IOUtils.closeQuietly(fos);
-                    IOUtils.closeQuietly(gzos);
                 }
 
                 // XXX try multiple times because Windows?

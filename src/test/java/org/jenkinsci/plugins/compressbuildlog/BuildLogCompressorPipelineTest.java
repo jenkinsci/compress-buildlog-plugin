@@ -1,4 +1,5 @@
-import org.jenkinsci.plugins.compressbuildlog.BuildLogCompressor;
+package org.jenkinsci.plugins.compressbuildlog;
+
 import org.jenkinsci.plugins.workflow.job.WorkflowJob;
 
 import org.junit.Assert;
@@ -20,6 +21,6 @@ public class BuildLogCompressorPipelineTest {
         Assert.assertNotNull(descriptor);
 
         boolean res = descriptor.isApplicable(workflowJob.getClass());
-        Assert.assertTrue(res);
+        Assert.assertFalse(res);
     }
 }
