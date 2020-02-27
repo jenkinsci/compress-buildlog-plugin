@@ -42,7 +42,7 @@ Examples:
 
 * *Require Jenkins 2.150.1*
 * General modernization
-* Drop support for Pipelines due to JEP-210
+* Drop support for Pipelines due to link:https://jenkins.io/jep/210[JEP-210]
 
 === Version 1.2 (2017-08-14)
 

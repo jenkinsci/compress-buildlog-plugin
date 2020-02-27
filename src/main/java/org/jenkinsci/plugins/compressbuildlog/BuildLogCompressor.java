@@ -105,7 +105,7 @@ public class BuildLogCompressor extends JobProperty<AbstractProject<?, ?>> {
             if (log.getName().equals("log")) {
                 LOGGER.log(Level.FINE, String.format("Compressing build log of %s", run));
 
-                try(FileInputStream fis = new FileInputStream(log); GZIPOutputStream gzos = new GZIPOutputStream(new FileOutputStream(new File(log.getParentFile(), gzippedLogName)))) {
+                try(FileInputStream fis = new FileInputStream(log); FileOutputStream fos = new FileOutputStream(new File(log.getParentFile(), gzippedLogName)); GZIPOutputStream gzos = new GZIPOutputStream(fos)) {
                     int copiedBytes = IOUtils.copy(fis, gzos);
 
                     if (copiedBytes != log.length()) {

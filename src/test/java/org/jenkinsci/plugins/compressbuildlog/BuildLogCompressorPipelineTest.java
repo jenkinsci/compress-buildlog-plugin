@@ -21,6 +21,6 @@ public class BuildLogCompressorPipelineTest {
         Assert.assertNotNull(descriptor);
 
         boolean res = descriptor.isApplicable(workflowJob.getClass());
-        Assert.assertFalse(res);
+        Assert.assertFalse("TODO does not work with post-JEP-210 Pipeline", res);
     }
 }
