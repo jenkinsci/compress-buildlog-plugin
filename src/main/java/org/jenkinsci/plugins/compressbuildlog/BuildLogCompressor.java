@@ -14,6 +14,9 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.StaplerRequest;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -61,12 +64,12 @@ public class BuildLogCompressor extends JobProperty<AbstractProject<?, ?>> {
 
         private static boolean hasBuildCompressorConfigured(Run<?, ?> run) {
             Job<?, ?> parent = run.getParent();
-            
+
             // Check project for BuildCompressor configuration
             if (parent.getProperty(BuildLogCompressor.class) != null) {
                 return true;
             }
-            
+
             // Multi-configuration runs have an extra parent to get to the project. Check that too.
             if (parent.getParent() instanceof Job) {
                 Job<?, ?> grandParent = (Job<?, ?>)parent.getParent();
@@ -79,7 +82,7 @@ public class BuildLogCompressor extends JobProperty<AbstractProject<?, ?>> {
             // No configuration to be found!
             return false;
         }
-        
+
         @Override
         public void onFinalized(Run run) {
             File log = run.getLogFile();
@@ -128,6 +131,19 @@ public class BuildLogCompressor extends JobProperty<AbstractProject<?, ?>> {
                 // XXX try multiple times because Windows?
                 if (!log.delete()) {
                     LOGGER.log(Level.WARNING, String.format("Failed to delete build log of %s after compression", run));
+                    return;
+                }
+
+                // Create symlink log -> log.gz
+                Path target = Paths.get(gzippedLogName);
+                Path symlink = Paths.get(log.getPath());
+                try {
+                    Files.createSymbolicLink(symlink, target);
+                } catch (IOException e) {
+                    LOGGER.log(Level.WARNING, String.format("Failed to create symlink %s for %s", gzippedLogName, run));
+                } catch (UnsupportedOperationException e) {
+                    // Some file systems do not support symbolic links.
+                    LOGGER.log(Level.WARNING, String.format("Failed to create symlink %s for %s as it is unsupported", gzippedLogName, run));
                 }
             }
         }
