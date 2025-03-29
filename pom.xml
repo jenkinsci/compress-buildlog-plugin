@@ -3,7 +3,8 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>2.33</version>
+    <version>4.88</version>
+    <relativePath />
   </parent>
 
   <groupId>org.jenkins-ci.plugins</groupId>
@@ -14,7 +15,9 @@
   <url>https://wiki.jenkins-ci.org/display/JENKINS/Compress+Build+Log+Plugin</url>
 
   <properties>
-    <jenkins.version>2.7.4</jenkins.version>
+    <!-- https://www.jenkins.io/doc/developer/plugin-development/choosing-jenkins-baseline/ -->
+    <jenkins.baseline>2.462</jenkins.baseline>
+    <jenkins.version>${jenkins.baseline}.3</jenkins.version>
   </properties>
 
   <licenses>
@@ -24,19 +27,23 @@
     </license>
   </licenses>
   
-  <developers>
-    <developer>
-      <id>danielbeck</id>
-      <name>Daniel Beck</name>
-    </developer>
-  </developers>
-  
   <scm>
-    <connection>scm:git:ssh://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
+    <connection>scm:git:https://github.com/jenkinsci/${project.artifactId}-plugin.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/jenkinsci/${project.artifactId}-plugin.git</developerConnection>
     <url>https://github.com/jenkinsci/${project.artifactId}-plugin</url>
     <tag>HEAD</tag>
   </scm>
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>io.jenkins.tools.bom</groupId>
+        <artifactId>bom-${jenkins.baseline}.x</artifactId>
+        <version>4228.v0a_71308d905b_</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
   
   <!-- get every artifact through repo.jenkins-ci.org, which proxies all the artifacts that we need -->
   <repositories>
@@ -57,13 +64,11 @@
     <dependency>
       <groupId>org.jenkins-ci.plugins.workflow</groupId>
       <artifactId>workflow-job</artifactId>
-      <version>2.9</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.jenkins-ci.plugins</groupId>
       <artifactId>structs</artifactId>
-      <version>1.6</version>
     </dependency>
   </dependencies>
 
